@@ -91,9 +91,6 @@ def forward_v2(
     output = model.ops.reshape2i(arr, -1, 1)
 
     def backprop(dY: OutT) -> InT:
-        if xp_input:
-            return model.ops.xp.empty(dY.shape)  # type: ignore
-        else:
-            return []
+        return model.ops.xp.empty(dY.shape) if xp_input else []
 
     return output, backprop

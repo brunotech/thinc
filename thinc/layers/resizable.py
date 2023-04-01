@@ -75,7 +75,7 @@ def resize_linear_weighted(
     new_layer.initialize()
     for name in layer.param_names:
         if layer.has_param(name):
-            filler = 0 if not fill_defaults else fill_defaults.get(name, 0)
+            filler = fill_defaults.get(name, 0) if fill_defaults else 0
             _resize_parameter(name, layer, new_layer, filler=filler)
     return new_layer
 

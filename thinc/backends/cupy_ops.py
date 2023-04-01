@@ -72,9 +72,8 @@ class CupyOps(Ops):
             y = y.T
         if out is None:
             return self.xp.dot(x, y)
-        else:
-            self.xp.dot(x, y, out=out)
-            return out
+        self.xp.dot(x, y, out=out)
+        return out
 
     def asarray(self, data, dtype=None):
         # We'll try to perform a zero-copy conversion if possible.
@@ -109,9 +108,8 @@ class CupyOps(Ops):
     def relu(self, X, inplace=False):
         if not inplace:
             return X * (X > 0)
-        else:
-            X *= X > 0
-            return X
+        X *= X > 0
+        return X
 
     def backprop_relu(self, dY, Y, inplace=False):
         if not inplace:

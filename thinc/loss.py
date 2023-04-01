@@ -73,9 +73,7 @@ class CategoricalCrossentropy(Loss):
             truths = list(truths)
             if len(truths):
                 if isinstance(truths[0], int):
-                    for i, value in enumerate(truths):
-                        if value == missing_value:
-                            missing.append(i)
+                    missing.extend(i for i, value in enumerate(truths) if value == missing_value)
                 else:
                     if self.names is None:
                         msg = (
@@ -110,13 +108,12 @@ class CategoricalCrossentropy(Loss):
                 n_classes=guesses.shape[-1],
                 label_smoothing=self.label_smoothing,
             )
-        else:
-            if self.label_smoothing:
-                raise ValueError(
-                    "Label smoothing is only applied, when truths have type "
-                    "List[str], List[int] or Ints1d, but it seems like Floats2d "
-                    "was provided."
-                )
+        elif self.label_smoothing:
+            raise ValueError(
+                "Label smoothing is only applied, when truths have type "
+                "List[str], List[int] or Ints1d, but it seems like Floats2d "
+                "was provided."
+            )
         # Transform negative annotations to a 0 for the negated value
         # + mask all other values for that row
         if negatives_mask is not None:
@@ -139,10 +136,10 @@ class CategoricalCrossentropy(Loss):
             err = f"Cannot calculate CategoricalCrossentropy loss: mismatched shapes: {guesses.shape} vs {target.shape}."
             raise ValueError(err)
         if xp.any(guesses > 1) or xp.any(guesses < 0):  # pragma: no cover
-            err = f"Cannot calculate CategoricalCrossentropy loss with guesses outside the [0,1] interval."
+            err = "Cannot calculate CategoricalCrossentropy loss with guesses outside the [0,1] interval."
             raise ValueError(err)
         if xp.any(target > 1) or xp.any(target < 0):  # pragma: no cover
-            err = f"Cannot calculate CategoricalCrossentropy loss with truth values outside the [0,1] interval."
+            err = "Cannot calculate CategoricalCrossentropy loss with truth values outside the [0,1] interval."
             raise ValueError(err)
         difference = guesses - target
         difference *= mask
@@ -234,8 +231,8 @@ class SequenceCategoricalCrossentropy(Loss):
     def get_grad(
         self, guesses: Sequence[Floats2d], truths: Sequence[IntsOrFloatsOrStrs]
     ) -> List[Floats2d]:
-        err = "Cannot calculate SequenceCategoricalCrossentropy loss: guesses and truths must be same length"
         if len(guesses) != len(truths):  # pragma: no cover
+            err = "Cannot calculate SequenceCategoricalCrossentropy loss: guesses and truths must be same length"
             raise ValueError(err)
         n = len(guesses)
         d_scores = []
@@ -345,8 +342,7 @@ class CosineDistance(Loss):
         norm_yh = xp.linalg.norm(yh, axis=1, keepdims=True)
         norm_y = xp.linalg.norm(y, axis=1, keepdims=True)
         mul_norms = norm_yh * norm_y
-        cosine = (yh * y).sum(axis=1, keepdims=True) / mul_norms
-        return cosine
+        return (yh * y).sum(axis=1, keepdims=True) / mul_norms
 
     def get_grad(self, guesses: Floats2d, truths: Floats2d) -> Floats2d:
         if guesses.shape != truths.shape:  # pragma: no cover
@@ -388,8 +384,7 @@ class CosineDistance(Loss):
             losses[zero_indices] = 0
         if self.normalize:
             losses = losses / guesses.shape[0]
-        loss = losses.sum()
-        return loss
+        return losses.sum()
 
 
 @registry.losses("CosineDistance.v1")

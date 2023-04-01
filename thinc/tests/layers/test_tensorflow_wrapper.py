@@ -44,7 +44,7 @@ def Y(answer, n_classes):
 def tf_model(n_hidden, input_size):
     import tensorflow as tf
 
-    tf_model = tf.keras.Sequential(
+    return tf.keras.Sequential(
         [
             tf.keras.layers.Dense(n_hidden, input_shape=(input_size,)),
             tf.keras.layers.LayerNormalization(),
@@ -53,7 +53,6 @@ def tf_model(n_hidden, input_size):
             tf.keras.layers.Dense(10, activation="softmax"),
         ]
     )
-    return tf_model
 
 
 @pytest.fixture
@@ -102,7 +101,7 @@ def test_tensorflow_wrapper_predict(model, X):
 def test_tensorflow_wrapper_train_overfits(model, X, Y, answer):
     optimizer = Adam()
     ops = get_current_ops()
-    for i in range(100):
+    for _ in range(100):
         guesses, backprop = model(X, is_train=True)
         # Ensure that the tensor is type-compatible with the current backend.
         guesses = ops.asarray(guesses)
@@ -121,7 +120,7 @@ def test_tensorflow_wrapper_accumulate_gradients(model, X, Y, answer):
     optimizer = Adam()
     gradients = []
     ops = get_current_ops()
-    for i in range(3):
+    for _ in range(3):
         guesses, backprop = model(X, is_train=True)
         # Ensure that the tensor is type-compatible with the current backend.
         guesses = ops.asarray(guesses)
@@ -181,7 +180,7 @@ def test_tensorflow_wrapper_serialize_model_subclass(
     model = TensorFlowWrapper(CustomKerasModel())
     # Train the model to predict the right single answer
     optimizer = Adam()
-    for i in range(50):
+    for _ in range(50):
         guesses, backprop = model(X, is_train=True)
         # Ensure that the tensor is type-compatible with the current backend.
         guesses = ops.asarray(guesses)
@@ -339,7 +338,7 @@ def test_tensorflow_wrapper_use_params(model, X, Y, answer):
     ops = get_current_ops()
     with model.use_params(optimizer.averages):
         assert model.predict(X).argmax() is not None
-    for i in range(10):
+    for _ in range(10):
         guesses, backprop = model.begin_update(X)
         # Ensure that the tensor is type-compatible with the current backend.
         guesses = ops.asarray(guesses)

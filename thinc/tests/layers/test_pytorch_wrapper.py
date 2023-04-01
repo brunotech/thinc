@@ -23,11 +23,7 @@ if has_torch_mps_gpu:
     XP_OPS.append(MPSOps())
 
 
-if has_torch_amp:
-    TORCH_MIXED_PRECISION = [False, True]
-else:
-    TORCH_MIXED_PRECISION = [False]
-
+TORCH_MIXED_PRECISION = [False, True] if has_torch_amp else [False]
 XP_OPS_MIXED = [
     (ops, mixed)
     for ops in XP_OPS
@@ -43,7 +39,7 @@ def check_learns_zero_output(model, sgd, X, Y):
     dX = get_dX(dYh)
     model.finish_update(sgd)
     prev = numpy.abs(Yh.sum())
-    for i in range(100):
+    for _ in range(100):
         Yh, get_dX = model.begin_update(X)
         total = numpy.abs(Yh.sum())
         dX = get_dX(Yh - Y)  # noqa: F841

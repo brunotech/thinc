@@ -24,8 +24,7 @@ def chain(
     Also supports chaining more than 2 layers.
     Note that the type checking for additional layers is carried out by the Thinc Mypy plugin.
     """
-    all_layers: List[Model[Any, Any]] = [layer1, layer2]
-    all_layers.extend(layers)
+    all_layers: List[Model[Any, Any]] = [layer1, layer2, *layers]
     dims: Dict[str, Optional[int]] = {"nO": None}
     # set input dimension only if first layer has one - should be "False" otherwise
     if all_layers[0].has_dim("nI") is True:

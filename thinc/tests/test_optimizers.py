@@ -12,32 +12,14 @@ def _test_schedule_invalid():
     yield from []
 
 
-@pytest.fixture(
-    params=[
-        (lambda: 0.123, 0.123, 0.123, 0.123),
-        (lambda: _test_schedule_valid(), 0.456, 0.456, 0.456),
-        (lambda: (i for i in [0.2, 0.1, 0.4, 0.5, 0.6, 0.7, 0.8]), 0.2, 0.1, 0.4),
-        (lambda: (i for i in [0.333, 0.666]), 0.333, 0.666, 0.666),
-        (lambda: [0.9, 0.8, 0.7], 0.9, 0.8, 0.7),
-        (lambda: [0.0, 0.123], 0.0, 0.123, 0.123),
-    ],
-    scope="function",
-)
+@pytest.fixture(params=[(lambda: 0.123, 0.123, 0.123, 0.123), (lambda: _test_schedule_valid(), 0.456, 0.456, 0.456), (lambda: iter([0.2, 0.1, 0.4, 0.5, 0.6, 0.7, 0.8]), 0.2, 0.1, 0.4), (lambda: iter([0.333, 0.666]), 0.333, 0.666, 0.666), (lambda: [0.9, 0.8, 0.7], 0.9, 0.8, 0.7), (lambda: [0.0, 0.123], 0.0, 0.123, 0.123)], scope="function")
 def schedule_valid(request):
     # Use lambda to prevent iterator from being consumed by first test
     r_func, r1, r2, r3 = request.param
     return r_func(), r1, r2, r3
 
 
-@pytest.fixture(
-    params=[
-        (lambda: "hello"),
-        (lambda: _test_schedule_invalid()),
-        (lambda: (_ for _ in [])),
-        (lambda: []),
-    ],
-    scope="function",
-)
+@pytest.fixture(params=[lambda: "hello", lambda: _test_schedule_invalid(), lambda: iter([]), lambda: []], scope="function")
 def schedule_invalid(request):
     # Use lambda to prevent iterator from being consumed by first test
     r_func = request.param

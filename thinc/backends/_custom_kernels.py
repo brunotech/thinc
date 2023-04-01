@@ -65,16 +65,11 @@ KERNELS = (
 def _get_kernel(name):
     """A small wrapper around KERNELS.get_function that verifies first that
     compiler kernels are available (cupy is installed)."""
-    if KERNELS is None:
-        return None
-    else:
-        return KERNELS.get_function(name)
+    return None if KERNELS is None else KERNELS.get_function(name)
 
 
 def compile_mmh(src):
-    if not has_cupy_gpu:
-        return None
-    return cupy.RawKernel(src, "hash_data")
+    return cupy.RawKernel(src, "hash_data") if has_cupy_gpu else None
 
 
 MMH_SRC = (PWD / "_murmur3.cu").read_text(encoding="utf8")
@@ -133,17 +128,11 @@ backprop_swish_kernel_float = _get_kernel("backprop_swish<float>")
 
 
 def _alloc(shape, dtype, *, zeros: bool = True):
-    if zeros:
-        return cupy.zeros(shape, dtype)
-    else:
-        return cupy.empty(shape, dtype)
+    return cupy.zeros(shape, dtype) if zeros else cupy.empty(shape, dtype)
 
 
 def _alloc_like(array, zeros: bool = True):
-    if zeros:
-        return cupy.zeros_like(array)
-    else:
-        return cupy.empty_like(array)
+    return cupy.zeros_like(array) if zeros else cupy.empty_like(array)
 
 
 def clipped_linear(

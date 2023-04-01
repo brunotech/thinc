@@ -27,14 +27,12 @@ def nO(request):
 
 @pytest.fixture
 def model1(nH, nI):
-    model = Relu(nH, nI).initialize()
-    return model
+    return Relu(nH, nI).initialize()
 
 
 @pytest.fixture
 def model2(nO, nH):
-    model = Linear(nO, nH).initialize()
-    return model
+    return Linear(nO, nH).initialize()
 
 
 @pytest.fixture

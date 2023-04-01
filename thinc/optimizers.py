@@ -170,10 +170,7 @@ class Optimizer(object):
         """
         self.mom1 = {}
         self.mom2 = {}
-        if use_averages:
-            self.averages = {}
-        else:
-            self.averages = None
+        self.averages = {} if use_averages else None
         self.schedules = {}
         self.nr_update = defaultdict(int)
         self.last_seen = defaultdict(int)
@@ -272,8 +269,6 @@ class Optimizer(object):
             "weight_decay": 0.0,
             "buffer": self._radam_buffer,
         }
-        degenerated_to_sgd = True
-
         exp_avg, exp_avg_sq = state["exp_avg"], state["exp_avg_sq"]
         beta1, beta2 = group["betas"]
 
@@ -294,6 +289,8 @@ class Optimizer(object):
             N_sma_max = 2 / (1 - beta2) - 1
             N_sma = N_sma_max - 2 * state["step"] * beta2_t / (1 - beta2_t)
             buffered[1] = N_sma
+
+            degenerated_to_sgd = True
 
             # more conservative since it's an approximated value
             if N_sma >= 5:

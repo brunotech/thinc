@@ -71,7 +71,7 @@ class PyTorchGradScaler:
         )
 
         # Cache per-device scales to avoid unnecessary d2d copies of the current scale.
-        scale_per_device: Dict["torch.device", "torch.Tensor"] = dict()
+        scale_per_device: Dict["torch.device", "torch.Tensor"] = {}
 
         if is_torch_array(tensors):
             tensor = cast("torch.Tensor", tensors)
@@ -116,13 +116,10 @@ class PyTorchGradScaler:
             scale_per_device[device] = self._scale.to(device=device)
 
         scale = scale_per_device[device]
-        if inplace:
-            return tensor.mul_(scale)
-        else:
-            return tensor * scale
+        return tensor.mul_(scale) if inplace else tensor * scale
 
     def _tensors_per_device(self, tensors):
-        tensors_per_device = dict()
+        tensors_per_device = {}
         for tensor in tensors:
             device_tensors = tensors_per_device.setdefault(tensor.device, [])
             device_tensors.append(tensor)
@@ -151,7 +148,7 @@ class PyTorchGradScaler:
                 device_tensors, found_inf_device, inv_scale_device
             )
 
-            if bool(found_inf_device != 0):
+            if found_inf_device != 0:
                 self._found_inf = True
 
         return self._found_inf

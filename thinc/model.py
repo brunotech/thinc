@@ -128,7 +128,7 @@ class Model(Generic[InT, OutT]):
     @property
     def grad_names(self) -> Tuple[str, ...]:
         """Get the names of parameters with registered gradients (including unset)."""
-        return tuple([name for name in self.param_names if self.has_grad(name)])
+        return tuple(name for name in self.param_names if self.has_grad(name))
 
     @property
     def dim_names(self) -> Tuple[str, ...]:
@@ -170,11 +170,10 @@ class Model(Generic[InT, OutT]):
         if name not in self._dims:
             raise KeyError(f"Cannot get dimension '{name}' for model '{self.name}'")
         value = self._dims[name]
-        if value is None:
-            err = f"Cannot get dimension '{name}' for model '{self.name}': value unset"
-            raise ValueError(err)
-        else:
+        if value is not None:
             return value
+        err = f"Cannot get dimension '{name}' for model '{self.name}': value unset"
+        raise ValueError(err)
 
     def set_dim(self, name: str, value: int, *, force: bool = False) -> None:
         """Set a value for a dimension."""
@@ -266,11 +265,10 @@ class Model(Generic[InT, OutT]):
         if name not in self._refs:
             raise KeyError(f"Cannot get reference '{name}' for model '{self.name}'.")
         value = self._refs[name]
-        if value is None:
-            err = f"Cannot get reference '{name}' for model '{self.name}': value unset."
-            raise ValueError(err)
-        else:
+        if value is not None:
             return value
+        err = f"Cannot get reference '{name}' for model '{self.name}': value unset."
+        raise ValueError(err)
 
     def maybe_get_ref(self, name: str) -> Optional["Model"]:
         """Retrieve the value of a reference if it exists, or None."""
@@ -278,9 +276,7 @@ class Model(Generic[InT, OutT]):
 
     def set_ref(self, name: str, value: Optional["Model"]) -> None:
         """Set a value for a reference."""
-        if value is None:
-            self._refs[name] = value
-        elif value in self.walk():
+        if value is None or value is not None and value in self.walk():
             self._refs[name] = value
         else:
             raise ValueError("Cannot add reference to node not in tree.")
@@ -380,16 +376,15 @@ class Model(Generic[InT, OutT]):
 
     def _walk_dfs(self, post_order: bool = False) -> Iterable["Model"]:
         """Iterate out layers of the model, depth-first."""
-        seen: Dict[int, Iterator["Model"]] = dict()
         stack = [self]
-        seen[id(self)] = iter(self.layers)
+        seen: Dict[int, Iterator["Model"]] = {id(self): iter(self.layers)}
         if not post_order:
             yield self
 
         while stack:
             try:
                 next_child = next(seen[id(stack[-1])])
-                if not id(next_child) in seen:
+                if id(next_child) not in seen:
                     if not post_order:
                         yield next_child
 
@@ -469,10 +464,10 @@ class Model(Generic[InT, OutT]):
     ) -> SelfT:
         if seen is None:
             seen = {}
-        params = {}
-        for name in self.param_names:
-            params[name] = self.get_param(name) if self.has_param(name) else None
-
+        params = {
+            name: self.get_param(name) if self.has_param(name) else None
+            for name in self.param_names
+        }
         copied_layers: List[Model] = []
         for layer in self.layers:
             if id(layer) in seen:
@@ -580,9 +575,10 @@ class Model(Generic[InT, OutT]):
                         invalid_refs.append(name)
             if invalid_refs:
                 raise ValueError(f"Cannot get references: {invalid_refs}")
-            dims = {}
-            for dim in node.dim_names:
-                dims[dim] = node.get_dim(dim) if node.has_dim(dim) else None
+            dims = {
+                dim: node.get_dim(dim) if node.has_dim(dim) else None
+                for dim in node.dim_names
+            }
             msg["nodes"].append(
                 {"index": i, "name": node.name, "dims": dims, "refs": refs}
             )
@@ -597,12 +593,12 @@ class Model(Generic[InT, OutT]):
         for node in nodes:
             msg["shims"].append([shim.to_bytes() for shim in node.shims])
         for node in nodes:
-            params: Dict[str, Optional[FloatsXd]] = {}
-            for name in node.param_names:
-                if node.has_param(name):
-                    params[name] = cast(Optional[FloatsXd], node.get_param(name))
-                else:
-                    params[name] = None
+            params: Dict[str, Optional[FloatsXd]] = {
+                name: cast(Optional[FloatsXd], node.get_param(name))
+                if node.has_param(name)
+                else None
+                for name in node.param_names
+            }
             msg["params"].append(params)
         return msg
 

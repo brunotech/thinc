@@ -113,20 +113,14 @@ class ComplexSchema(BaseModel):
 
 @my_registry.cats.register("catsie.v1")
 def catsie_v1(evil: StrictBool, cute: bool = True) -> str:
-    if evil:
-        return "scratch!"
-    else:
-        return "meow"
+    return "scratch!" if evil else "meow"
 
 
 @my_registry.cats.register("catsie.v2")
 def catsie_v2(evil: StrictBool, cute: bool = True, cute_level: int = 1) -> str:
     if evil:
         return "scratch!"
-    else:
-        if cute_level > 2:
-            return "meow <3"
-        return "meow"
+    return "meow <3" if cute_level > 2 else "meow"
 
 
 good_catsie = {"@cats": "catsie.v1", "evil": False, "cute": True}

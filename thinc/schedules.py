@@ -10,10 +10,9 @@ def constant_then(
     rate: float, steps: int, schedule: Iterable[float]
 ) -> Iterable[float]:
     """Yield a constant rate for N steps, before starting a schedule."""
-    for i in range(steps):
+    for _ in range(steps):
         yield rate
-    for value in schedule:
-        yield value
+    yield from schedule
 
 
 @registry.schedules("constant.v1")
@@ -54,7 +53,7 @@ def compounding(
         >>> assert next(sizes) == 1 * 1.5
         >>> assert next(sizes) == 1.5 * 1.5
     """
-    curr = float(start)
+    curr = start
     while True:
         yield _clip(curr, start, stop)
         curr *= compound
@@ -80,12 +79,8 @@ def slanted_triangular(
     cut = int(num_steps * cut_frac)
     while True:
         t += 1
-        if t < cut:
-            p = t / cut
-        else:
-            p = 1 - ((t - cut) / (cut * (1 / cut_frac - 1)))
-        learn_rate = max_rate * (1 + p * (ratio - 1)) * (1 / ratio)
-        yield learn_rate
+        p = t / cut if t < cut else 1 - ((t - cut) / (cut * (1 / cut_frac - 1)))
+        yield max_rate * (1 + p * (ratio - 1)) * (1 / ratio)
 
 
 @registry.schedules("warmup_linear.v1")
