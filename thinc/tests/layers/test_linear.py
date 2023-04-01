@@ -11,8 +11,7 @@ from ..util import get_model, get_shape
 
 @pytest.fixture
 def model():
-    model = Linear()
-    return model
+    return Linear()
 
 
 def test_linear_default_name(model):
@@ -133,8 +132,7 @@ def test_dropout_gives_zero_gradients(W_b_input):
 
 @pytest.fixture
 def model2():
-    model = Linear(2, 2).initialize()
-    return model
+    return Linear(2, 2).initialize()
 
 
 def test_init(model2):
@@ -233,6 +231,6 @@ def test_update():
     # so outer([0, -1.], [1., 0.])
     # =  [[0., 0.], [-1., 0.]]
     assert W[0, 0] == 1.0 - 0.0
-    assert W[0, 1] == 0.0 - 0.0
+    assert W[0, 1] == 0.0
     assert W[1, 0] == 0.0 - -1.0
     assert W[1, 1] == 1.0 - 0.0

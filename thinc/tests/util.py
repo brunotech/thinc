@@ -100,7 +100,7 @@ def check_input_converters(Y, backprop, data, n_args, kwargs_keys, type_):
     def is_supported_backend_array(arr):
         return is_cupy_array(arr) or is_numpy_array(arr)
 
-    input_type = type(data) if not isinstance(data, list) else tuple
+    input_type = tuple if isinstance(data, list) else type(data)
     assert isinstance(dX, input_type) or is_supported_backend_array(dX)
 
     if isinstance(data, dict):

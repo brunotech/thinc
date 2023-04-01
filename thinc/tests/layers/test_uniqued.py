@@ -55,8 +55,6 @@ def test_uniqued_doesnt_change_result(model, X):
     dX = bp_Y(Y)
     dXu = bp_Yu(Yu)
     assert_allclose(dX, dXu)
-    if X.size:
-        pass
         # TODO: This test is a problem, because we exceed the embedding table.
         # Fix it with a better cap.
         # Check that different inputs do give different results

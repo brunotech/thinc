@@ -83,31 +83,18 @@ def is_xp_array(obj: Any) -> bool:
     return is_numpy_array(obj) or is_cupy_array(obj)
 
 
-def is_cupy_array(obj: Any) -> bool:  # pragma: no cover
+def is_cupy_array(obj: Any) -> bool:    # pragma: no cover
     """Check whether an object is a cupy array."""
-    if not has_cupy:
-        return False
-    elif isinstance(obj, cupy.ndarray):
-        return True
-    else:
-        return False
+    return bool(has_cupy and isinstance(obj, cupy.ndarray))
 
 
 def is_numpy_array(obj: Any) -> bool:
     """Check whether an object is a numpy array."""
-    if isinstance(obj, numpy.ndarray):
-        return True
-    else:
-        return False
+    return isinstance(obj, numpy.ndarray)
 
 
 def is_torch_array(obj: Any) -> bool:  # pragma: no cover
-    if torch is None:
-        return False
-    elif isinstance(obj, torch.Tensor):
-        return True
-    else:
-        return False
+    return torch is not None and isinstance(obj, torch.Tensor)
 
 
 def is_torch_cuda_array(obj: Any) -> bool:  # pragma: no cover
@@ -123,12 +110,7 @@ def is_torch_mps_array(obj: Any) -> bool:  # pragma: no cover
 
 
 def is_tensorflow_array(obj: Any) -> bool:  # pragma: no cover
-    if not has_tensorflow:
-        return False
-    elif isinstance(obj, tf.Tensor):
-        return True
-    else:
-        return False
+    return bool(has_tensorflow and isinstance(obj, tf.Tensor))
 
 
 def is_tensorflow_gpu_array(obj: Any) -> bool:  # pragma: no cover
@@ -232,12 +214,12 @@ def to_categorical(
         if n_classes == 0:
             raise ValueError("n_classes should be at least 1")
         nongold_prob = 0.0
+    elif n_classes <= 1:
+        raise ValueError(
+            "n_classes should be greater than 1 when label smoothing is enabled,"
+            f"but {n_classes} was provided."
+        )
     else:
-        if not n_classes > 1:
-            raise ValueError(
-                "n_classes should be greater than 1 when label smoothing is enabled,"
-                f"but {n_classes} was provided."
-            )
         nongold_prob = label_smoothing / (n_classes - 1)
 
     max_smooth = (n_classes - 1) / n_classes
@@ -273,19 +255,16 @@ def get_width(
         else:
             return X.shape[dim]
     elif isinstance(X, (list, tuple)):
-        if len(X) == 0:
-            return 0
-        else:
-            return get_width(X[0], dim=dim)
+        return 0 if len(X) == 0 else get_width(X[0], dim=dim)
     else:
         err = "Cannot get width of object: has neither shape nor __getitem__"
         raise ValueError(err)
 
 
-def assert_tensorflow_installed() -> None:  # pragma: no cover
+def assert_tensorflow_installed() -> None:    # pragma: no cover
     """Raise an ImportError if TensorFlow is not installed."""
-    template = "TensorFlow support requires {pkg}: pip install thinc[tensorflow]"
     if not has_tensorflow:
+        template = "TensorFlow support requires {pkg}: pip install thinc[tensorflow]"
         raise ImportError(template.format(pkg="tensorflow>=2.0.0"))
 
 
@@ -342,7 +321,7 @@ def iterate_recursive(is_match: Callable[[Any], bool], obj: Any) -> Any:
         for key, value in obj.items():
             yield from iterate_recursive(is_match, key)
             yield from iterate_recursive(is_match, value)
-    elif isinstance(obj, list) or isinstance(obj, tuple):
+    elif isinstance(obj, (list, tuple)):
         for item in obj:
             yield from iterate_recursive(is_match, item)
 
@@ -376,7 +355,7 @@ def xp2torch(
 
 def torch2xp(
     torch_tensor: "torch.Tensor", *, ops: Optional["Ops"] = None
-) -> ArrayXd:  # pragma: no cover
+) -> ArrayXd:    # pragma: no cover
     """Convert a torch tensor to a numpy or cupy tensor depending on the `ops` parameter.
     If `ops` is `None`, the type of the resultant tensor will be determined by the source tensor's device.
     """
@@ -384,20 +363,20 @@ def torch2xp(
 
     assert_pytorch_installed()
     if is_torch_cuda_array(torch_tensor):
-        if isinstance(ops, NumpyOps):
-            return torch_tensor.detach().cpu().numpy()
-        else:
-            return cupy_from_dlpack(torch.utils.dlpack.to_dlpack(torch_tensor))
+        return (
+            torch_tensor.detach().cpu().numpy()
+            if isinstance(ops, NumpyOps)
+            else cupy_from_dlpack(torch.utils.dlpack.to_dlpack(torch_tensor))
+        )
+    if isinstance(ops, NumpyOps) or ops is None:
+        return torch_tensor.detach().cpu().numpy()
     else:
-        if isinstance(ops, NumpyOps) or ops is None:
-            return torch_tensor.detach().cpu().numpy()
-        else:
-            return cupy.asarray(torch_tensor)
+        return cupy.asarray(torch_tensor)
 
 
 def xp2tensorflow(
     xp_tensor: ArrayXd, requires_grad: bool = False, as_variable: bool = False
-) -> "tf.Tensor":  # pragma: no cover
+) -> "tf.Tensor":    # pragma: no cover
     """Convert a numpy or cupy tensor to a TensorFlow Tensor or Variable"""
     assert_tensorflow_installed()
     if hasattr(xp_tensor, "toDlpack"):
@@ -413,7 +392,7 @@ def xp2tensorflow(
         # So we need to control it using the context manager
         with tf.device(tf_tensor.device):
             tf_tensor = tf.Variable(tf_tensor, trainable=requires_grad)
-    if requires_grad is False and as_variable is False:
+    if not requires_grad and not as_variable:
         # tf.stop_gradient() automatically puts in GPU if available.
         # So we need to control it using the context manager
         with tf.device(tf_tensor.device):
@@ -423,24 +402,23 @@ def xp2tensorflow(
 
 def tensorflow2xp(
     tf_tensor: "tf.Tensor", *, ops: Optional["Ops"] = None
-) -> ArrayXd:  # pragma: no cover
+) -> ArrayXd:    # pragma: no cover
     """Convert a Tensorflow tensor to numpy or cupy tensor depending on the `ops` parameter.
     If `ops` is `None`, the type of the resultant tensor will be determined by the source tensor's device.
     """
     from .api import NumpyOps
 
     assert_tensorflow_installed()
-    if is_tensorflow_gpu_array(tf_tensor):
-        if isinstance(ops, NumpyOps):
-            return tf_tensor.numpy()
-        else:
-            dlpack_tensor = tf.experimental.dlpack.to_dlpack(tf_tensor)
-            return cupy_from_dlpack(dlpack_tensor)
-    else:
-        if isinstance(ops, NumpyOps) or ops is None:
-            return tf_tensor.numpy()
-        else:
-            return cupy.asarray(tf_tensor.numpy())
+    if not is_tensorflow_gpu_array(tf_tensor):
+        return (
+            tf_tensor.numpy()
+            if isinstance(ops, NumpyOps) or ops is None
+            else cupy.asarray(tf_tensor.numpy())
+        )
+    if isinstance(ops, NumpyOps):
+        return tf_tensor.numpy()
+    dlpack_tensor = tf.experimental.dlpack.to_dlpack(tf_tensor)
+    return cupy_from_dlpack(dlpack_tensor)
 
 
 def xp2mxnet(
@@ -460,21 +438,21 @@ def xp2mxnet(
 
 def mxnet2xp(
     mx_tensor: "mx.nd.NDArray", *, ops: Optional["Ops"] = None
-) -> ArrayXd:  # pragma: no cover
+) -> ArrayXd:    # pragma: no cover
     """Convert a MXNet tensor to a numpy or cupy tensor."""
     from .api import NumpyOps
 
     assert_mxnet_installed()
     if is_mxnet_gpu_array(mx_tensor):
-        if isinstance(ops, NumpyOps):
-            return mx_tensor.detach().asnumpy()
-        else:
-            return cupy_from_dlpack(mx_tensor.to_dlpack_for_write())
+        return (
+            mx_tensor.detach().asnumpy()
+            if isinstance(ops, NumpyOps)
+            else cupy_from_dlpack(mx_tensor.to_dlpack_for_write())
+        )
+    if isinstance(ops, NumpyOps) or ops is None:
+        return mx_tensor.detach().asnumpy()
     else:
-        if isinstance(ops, NumpyOps) or ops is None:
-            return mx_tensor.detach().asnumpy()
-        else:
-            return cupy.asarray(mx_tensor.asnumpy())
+        return cupy.asarray(mx_tensor.asnumpy())
 
 
 # This is how functools.partials seems to do it, too, to retain the return type

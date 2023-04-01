@@ -265,10 +265,7 @@ def _overload_plus(operator, sleep):
     m2 = create_model(name="b")
     with Model.define_operators({operator: lambda a, b: a.name + b.name}):
         time.sleep(sleep)
-        if operator == "+":
-            value = m1 + m2
-        else:
-            value = m1 * m2
+        value = m1 + m2 if operator == "+" else m1 * m2
     assert value == "ab"
     assert Model._context_operators.get() == {}
 
@@ -428,7 +425,7 @@ def test_model_gpu():
         optimizer = Adam(0.001)
         batch_size = 128
 
-        for i in range(2):
+        for _ in range(2):
             batches = model.ops.multibatch(batch_size, train_X, train_Y, shuffle=True)
             for X, Y in batches:
                 Yh, backprop = model.begin_update(X)

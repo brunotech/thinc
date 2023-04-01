@@ -191,12 +191,19 @@ def test_layers_batching_all(name, kwargs, in_data, out_data):
         model = with_padded(model)
         util_batch_unbatch_list(model, in_data, out_data)
     else:
-        if isinstance(in_data, OPS.xp.ndarray) and in_data.ndim == 2:
-            if isinstance(out_data, OPS.xp.ndarray) and out_data.ndim == 2:
-                util_batch_unbatch_array(model, in_data, out_data)
-        if isinstance(in_data, Ragged):
-            if isinstance(out_data, OPS.xp.ndarray) and out_data.ndim == 2:
-                util_batch_unbatch_ragged(model, in_data, out_data)
+        if (
+            isinstance(in_data, OPS.xp.ndarray)
+            and in_data.ndim == 2
+            and isinstance(out_data, OPS.xp.ndarray)
+            and out_data.ndim == 2
+        ):
+            util_batch_unbatch_array(model, in_data, out_data)
+        if (
+            isinstance(in_data, Ragged)
+            and isinstance(out_data, OPS.xp.ndarray)
+            and out_data.ndim == 2
+        ):
+            util_batch_unbatch_ragged(model, in_data, out_data)
 
 
 def util_batch_unbatch_array(

@@ -20,13 +20,9 @@ def maybe_handshake_model(keras_model):
     """Call the required predict/compile/build APIs to initialize a model if it
     is a subclass of tf.keras.Model. This is required to be able to call set_weights
     on subclassed layers."""
-    try:
+    with contextlib.suppress(AttributeError, NotImplementedError):
         keras_model.get_config()
         return keras_model
-    except (AttributeError, NotImplementedError):
-        # Subclassed models don't implement get_config
-        pass
-
     for prop_name in ["catalogue_name", "eg_x", "eg_y", "eg_shape"]:
         if not hasattr(keras_model, prop_name):
             raise ValueError(
@@ -38,11 +34,7 @@ def maybe_handshake_model(keras_model):
             )
 
     ops: Ops = get_current_ops()
-    if ops.device_type == "cpu":
-        device = "CPU"
-    else:  # pragma: no cover
-        device = tf.test.gpu_device_name()
-
+    device = "CPU" if ops.device_type == "cpu" else tf.test.gpu_device_name()
     compile_args = keras_model.eg_compile
 
     with tf.device(device):
@@ -82,10 +74,7 @@ class TensorFlowShim(Shim):
         return "\n".join(lines)
 
     def __call__(self, X: ArgsKwargs, is_train: bool):
-        if is_train:
-            return self.begin_update(X)
-        else:
-            return self.predict(X)
+        return self.begin_update(X) if is_train else self.predict(X)
 
     def predict(self, X: ArgsKwargs):
         old_phase = tf.keras.backend.learning_phase()
@@ -105,10 +94,7 @@ class TensorFlowShim(Shim):
             # d_args[0] contains derivative of loss wrt output (d_loss/d_output)
             tape.__exit__(None, None, None)
             # We need to handle a tuple of inputs
-            if len(X.args) == 1:
-                wrt_tensors = [X.args[0]]  # add the input layer also for d_loss/d_input
-            else:
-                wrt_tensors = list(X.args[0])
+            wrt_tensors = [X.args[0]] if len(X.args) == 1 else list(X.args[0])
             wrt_tensors.extend(self._model.trainable_variables)
             all_gradients = tape.gradient(
                 output, wrt_tensors, output_gradients=d_output
@@ -165,9 +151,7 @@ class TensorFlowShim(Shim):
         if state_dict is None:
             state_dict = self._create_state_dict()
         for layer in self._model.layers:
-            current_layer_weights = []
-            for weight in layer.weights:
-                current_layer_weights.append(state_dict[weight.name])
+            current_layer_weights = [state_dict[weight.name] for weight in layer.weights]
             layer.set_weights(current_layer_weights)
 
     # Create a state dict similar to PyTorch
@@ -186,12 +170,9 @@ class TensorFlowShim(Shim):
         state_dict = {}
         for k, v in params.items():
             if hasattr(k, "startswith") and k.startswith(key_prefix):
-                if cupy is None:
-                    assert isinstance(v, numpy.ndarray)
-                else:  # pragma: no cover
-                    if isinstance(v, cupy.core.core.ndarray):
-                        v = cupy.asnumpy(v)
-                    assert isinstance(v, numpy.ndarray)
+                if cupy is not None and isinstance(v, cupy.core.core.ndarray):
+                    v = cupy.asnumpy(v)
+                assert isinstance(v, numpy.ndarray)
                 state_dict[k.replace(key_prefix, "")] = v
         if state_dict:
             backup = self._create_state_dict()
@@ -225,7 +206,7 @@ class TensorFlowShim(Shim):
             with tf.device("/CPU"):  # pragma: no cover
                 self._clone_model()
         elif device_type == "gpu":
-            with tf.device("/GPU:{}".format(device_id)):
+            with tf.device(f"/GPU:{device_id}"):
                 self._clone_model()
 
     def to_bytes(self):
@@ -246,11 +227,7 @@ class TensorFlowShim(Shim):
 
     def from_bytes(self, data):
         ops: Ops = get_current_ops()
-        if ops.device_type == "cpu":
-            device = "CPU"
-        else:  # pragma: no cover
-            device = tf.test.gpu_device_name()
-
+        device = "CPU" if ops.device_type == "cpu" else tf.test.gpu_device_name()
         # Plain bytes
         if isinstance(data, (str, bytes)):
             tf.keras.backend.clear_session()

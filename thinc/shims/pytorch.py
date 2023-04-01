@@ -94,10 +94,7 @@ class PyTorchShim(Shim):
     @property
     def device(self):
         p = next(self._model.parameters(), None)
-        if p is None:
-            return get_torch_default_device()
-        else:
-            return p.device
+        return get_torch_default_device() if p is None else p.device
 
     def predict(self, inputs: ArgsKwargs) -> Any:
         """Pass inputs through to the underlying PyTorch model, and return the
@@ -177,11 +174,11 @@ class PyTorchShim(Shim):
     @contextlib.contextmanager
     def use_params(self, params):
         key_prefix = f"pytorch_{self.id}_"
-        state_dict = {}
-        for k, v in params.items():
-            if hasattr(k, "startswith") and k.startswith(key_prefix):
-                state_dict[k.replace(key_prefix, "")] = xp2torch(v, device=self.device)
-        if state_dict:
+        if state_dict := {
+            k.replace(key_prefix, ""): xp2torch(v, device=self.device)
+            for k, v in params.items()
+            if hasattr(k, "startswith") and k.startswith(key_prefix)
+        }:
             backup = {k: v.clone() for k, v in self._model.state_dict().items()}
             self._model.load_state_dict(state_dict)
             yield

@@ -89,10 +89,7 @@ def forward(model: Model[InT, OutT], X: InT, is_train: bool) -> Tuple[OutT, Call
         msg = "backprop is not supported for an unnormalized Softmax layer"
         raise ValueError(msg)
 
-    if normalize:
-        return Y, backprop
-    else:
-        return Y, backprop_unnormalized
+    return (Y, backprop) if normalize else (Y, backprop_unnormalized)
 
 
 def init(

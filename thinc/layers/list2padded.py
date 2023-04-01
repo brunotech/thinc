@@ -12,7 +12,7 @@ OutT = Padded
 @registry.layers("list2padded.v1")
 def list2padded() -> Model[InT, OutT]:
     """Create a layer to convert a list of array inputs into Padded."""
-    return Model(f"list2padded", forward)
+    return Model("list2padded", forward)
 
 
 def forward(model: Model[InT, OutT], Xs: InT, is_train: bool) -> Tuple[OutT, Callable]:

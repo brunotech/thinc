@@ -12,7 +12,7 @@ OutT = TypeVar("OutT", bound=List2d)
 @registry.layers("padded2list.v1")
 def padded2list() -> Model[InT, OutT]:
     """Create a layer to convert a Padded input into a list of arrays."""
-    return Model(f"padded2list", forward)
+    return Model("padded2list", forward)
 
 
 def forward(

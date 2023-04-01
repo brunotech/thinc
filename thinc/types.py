@@ -7,11 +7,7 @@ import numpy
 import sys
 from .compat import has_cupy, cupy
 
-if has_cupy:
-    get_array_module = cupy.get_array_module
-else:
-    get_array_module = lambda obj: numpy
-
+get_array_module = cupy.get_array_module if has_cupy else (lambda obj: numpy)
 # Use typing_extensions for Python versions < 3.8
 if sys.version_info < (3, 8):
     from typing_extensions import Protocol, Literal
@@ -1191,7 +1187,7 @@ class Ragged:
         elif isinstance(index, slice):
             lengths = self.lengths[index]
             if len(lengths) == 0:
-                return Ragged(self.data[0:0].reshape(self.data_shape), lengths)
+                return Ragged(self.data[:0].reshape(self.data_shape), lengths)
             start = starts[index][0] if index.start >= 1 else 0
             end = ends[index][-1]
             return Ragged(self.data[start:end].reshape(self.data_shape), lengths)

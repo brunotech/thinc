@@ -114,11 +114,10 @@ def arrays_OPFI_BI_lengths(max_B=5, max_P=3, max_F=5, max_I=8):
         arrays("int32", shape=(5,), elements=integers(min_value=1, max_value=10)),
     )
 
-    strat = shapes.flatmap(
+    return shapes.flatmap(
         lambda opfi_lengths: tuples(
             ndarrays_of_shape(opfi_lengths[:-1]),
             ndarrays_of_shape((sum(opfi_lengths[-1]), opfi_lengths[-2])),
             just(opfi_lengths[-1]),
         )
     )
-    return strat

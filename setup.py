@@ -38,16 +38,14 @@ LINK_OPTIONS = {"msvc": [], "other": []}
 def is_new_osx():
     """Check whether we're on OSX >= 10.10"""
     name = distutils.util.get_platform()
-    if sys.platform != "darwin":
+    if (
+        sys.platform != "darwin"
+        or sys.platform == "darwin"
+        and not name.startswith("macosx-10")
+    ):
         return False
-    elif name.startswith("macosx-10"):
-        minor_version = int(name.split("-")[1].split(".")[1])
-        if minor_version >= 7:
-            return True
-        else:
-            return False
-    else:
-        return False
+    minor_version = int(name.split("-")[1].split(".")[1])
+    return minor_version >= 7
 
 
 if is_new_osx():
